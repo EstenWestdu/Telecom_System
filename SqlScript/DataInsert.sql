@@ -8,7 +8,7 @@ INSERT INTO admin_info (account, name, password) VALUES
 (100001, 'admin', 'admin123');
 
 -- 插入用户信息
-INSERT INTO user_info (account, name, password, balance, packge_id, phone) VALUES
+INSERT INTO user_info (account, name, password, balance, package_id, phone) VALUES
 (200001, '张三', 'zhangsan123', 100.50, '1', '13800138001'),
 (200002, '李四', 'lisi123', 50.00, '2', '13800138002'),
 (200003, '王五', 'wangwu123', 200.00, '1', '13800138003'),

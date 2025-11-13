@@ -172,7 +172,7 @@ public class StatisticsService {
                     activityStats.put("lastLoginTime", lastLogin.orElse(null));
                     activityStats.put("activityLevel", activityLevel);
                     activityStats.put("balance", user.getBalance());
-                    activityStats.put("packageId", user.getPackgeId());
+                    activityStats.put("packageId", user.getPackageId());
                     
                     return activityStats;
                 })
@@ -284,9 +284,9 @@ public class StatisticsService {
         List<User> allUsers = userRepository.findAll();
         
         // 按套餐分组统计
-        Map<String, Long> packageDistribution = allUsers.stream()
+        Map<Integer, Long> packageDistribution = allUsers.stream()
                 .collect(Collectors.groupingBy(
-                    User::getPackgeId,
+                    User::getPackageId,
                     Collectors.counting()
                 ));
         
@@ -294,10 +294,10 @@ public class StatisticsService {
         distribution.put("totalUsers", allUsers.size());
         
         // 计算最受欢迎的套餐
-        String mostPopularPackage = packageDistribution.entrySet().stream()
+        Integer mostPopularPackage = packageDistribution.entrySet().stream()
                 .max(Map.Entry.comparingByValue())
                 .map(Map.Entry::getKey)
-                .orElse("无");
+                .orElse(null);
         
         distribution.put("mostPopularPackage", mostPopularPackage);
         

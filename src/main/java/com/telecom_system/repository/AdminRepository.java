@@ -52,3 +52,4 @@ public interface AdminRepository extends JpaRepository<Admin, Integer> {
     // 检查管理员名是否存在
     boolean existsByName(String name);
 }
+

@@ -21,10 +21,13 @@ public interface PackageRepository extends JpaRepository<Package, Integer> {
     List<Package> findByDurationContaining(String durationKeyword);
     
     // 自定义查询：查找最受欢迎的套餐（使用人数最多的）
-    @Query("SELECT p, COUNT(u) as userCount " +
-           "FROM PackageInfo p LEFT JOIN UserInfo u ON p.id = u.packgeId " +
-           "GROUP BY p.id " +
-           "ORDER BY userCount DESC")
+    // 使用原生 SQL：在实体字段类型不一致（Package.id 为 Integer，User.packageId 为 String）时
+    // 使用原生查询并在数据库层处理类型/连接。
+    @Query(value = "SELECT p.*, COUNT(u.account) AS user_count " +
+        "FROM package_info p " +
+        "LEFT JOIN user_info u ON p.id = u.package_id " +
+        "GROUP BY p.id " +
+        "ORDER BY user_count DESC", nativeQuery = true)
     List<Object[]> findPopularPackages();
     
 }

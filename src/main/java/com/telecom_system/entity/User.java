@@ -1,6 +1,8 @@
 package com.telecom_system.entity;
 
 import jakarta.persistence.*;
+// import jakarta.persistence.criteria.CriteriaBuilder.In;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -20,8 +22,8 @@ public class User {
     @Column(name = "balance", nullable = false, precision = 10, scale = 2)
     private BigDecimal balance; // 账户余额
 
-    @Column(name = "packge_id", nullable = false, length = 6)
-    private String packgeId; // 所选套餐ID
+    @Column(name = "package_id", nullable = false, length = 6)
+    private Integer packageId; // 所选套餐ID
     
     @Column(name = "phone", nullable = false, length = 20)
     private String phone;  // 新增电话号码字段
@@ -34,12 +36,12 @@ public class User {
     // 构造方法
     public User() {}
     
-    public User(Integer account, String name, String password, BigDecimal balance, String packgeId) {
+    public User(Integer account, String name, String password, BigDecimal balance, Integer packageId) {
         this.account = account;
         this.name = name;
         this.password = password;
         this.balance = balance;
-        this.packgeId = packgeId;
+        this.packageId = packageId;
     }
     
     // Getter和Setter方法
@@ -58,8 +60,8 @@ public class User {
     public BigDecimal getBalance() { return balance; }
     public void setBalance(BigDecimal balance) { this.balance = balance; }
 
-    public String getPackgeId() { return packgeId; }
-    public void setPackgeId(String packgeId) { this.packgeId = packgeId; }
+    public Integer getPackageId() { return packageId; }
+    public void setPackageId(Integer packageId) { this.packageId = packageId; }
 
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }

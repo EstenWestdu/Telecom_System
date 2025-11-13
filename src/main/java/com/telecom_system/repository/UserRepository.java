@@ -74,7 +74,7 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     Optional<User> findByPhone(String phone);
     
     // 查找使用指定套餐的用户
-    List<User> findByPackgeId(String packgeId);
+    List<User> findByPackageId(Integer packageId);
     
     // 根据余额范围查找用户
     List<User> findByBalanceBetween(Double minBalance, Double maxBalance);
@@ -83,10 +83,10 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     List<User> findByBalanceGreaterThan(Double balance);
     
     // 自定义查询：查找套餐使用率高的用户
-    @Query("SELECT u FROM User u WHERE u.balance < :minBalance AND u.packgeId = :packgeId")
+    @Query("SELECT u FROM User u WHERE u.balance < :minBalance AND u.packageId = :packageId")
     List<User> findUsersWithLowBalanceAndPackage(
         @Param("minBalance") Double minBalance, 
-        @Param("packgeId") String packgeId
+        @Param("packageId") Integer packageId
     );
 
     List<User> findByNameContaining(String name);

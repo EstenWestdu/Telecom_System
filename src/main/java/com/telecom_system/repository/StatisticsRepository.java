@@ -1,36 +1,31 @@
 package com.telecom_system.repository;
 
+import com.telecom_system.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import java.util.List;
-import java.util.Map;
 
 @Repository
-public interface StatisticsRepository extends JpaRepository<Object, Long> {
-    
-    // 系统统计信息
-    @Query("SELECT " +
-           "COUNT(u) as totalUsers, " +
-           "SUM(u.balance) as totalBalance, " +
-           "AVG(u.balance) as averageBalance, " +
-           "COUNT(DISTINCT u.packgeId) as activePackages " +
-           "FROM UserInfo u")
-    Map<String, Object> getSystemStatistics();
-    
-    // 套餐使用统计
-    @Query("SELECT p.id, p.duration, p.cost, COUNT(u) as userCount " +
-           "FROM PackageInfo p LEFT JOIN UserInfo u ON p.id = u.packgeId " +
+public interface StatisticsRepository extends JpaRepository<User, Integer> {
+
+    // 系统统计信息（原生 SQL）
+    @Query(value = "SELECT COUNT(u.account) AS total_users, SUM(u.balance) AS total_balance, AVG(u.balance) AS average_balance, COUNT(DISTINCT u.package_id) AS active_packages FROM user_info u", nativeQuery = true)
+    Object[] getSystemStatistics();
+
+    // 套餐使用统计（原生 SQL）
+    @Query(value = "SELECT p.id, p.duration, p.cost, COUNT(u.account) AS user_count " +
+           "FROM package_info p " +
+           "LEFT JOIN user_info u ON p.id::text = u.package_id " +
            "GROUP BY p.id, p.duration, p.cost " +
-           "ORDER BY userCount DESC")
+           "ORDER BY user_count DESC", nativeQuery = true)
     List<Object[]> getPackageUsageStatistics();
-    
-    // 用户活跃度统计
-    @Query("SELECT u.account, u.name, COUNT(li) as loginCount, " +
-           "SUM(EXTRACT(EPOCH FROM (li.logoutTime - li.id.loginTime)) / 3600) as totalHours " +
-           "FROM UserInfo u LEFT JOIN LoginInfo li ON u.account = li.id.accountId " +
-           "WHERE li.logoutTime IS NOT NULL " +
+
+    // 用户活跃度统计（原生 SQL）
+    @Query(value = "SELECT u.account, u.name, COUNT(li.account_id) AS login_count, SUM(EXTRACT(EPOCH FROM (li.logout_time - li.login_time)) / 3600) AS total_hours " +
+           "FROM user_info u LEFT JOIN login_info li ON u.account = li.account_id " +
+           "WHERE li.logout_time IS NOT NULL " +
            "GROUP BY u.account, u.name " +
-           "ORDER BY totalHours DESC")
+           "ORDER BY total_hours DESC", nativeQuery = true)
     List<Object[]> getUserActivityStatistics();
 }

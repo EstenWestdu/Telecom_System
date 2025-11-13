@@ -28,17 +28,17 @@ public interface LoginInfoRepository extends JpaRepository<LoginInfo, LoginInfo.
     @Query("SELECT li FROM LoginInfo li WHERE li.id.loginTime >= :sinceTime")
     List<LoginInfo> findRecentLogins(@Param("sinceTime") LocalDateTime sinceTime);
     
-    // 统计用户的总在线时长（小时）
-    @Query("SELECT li.id.accountId, SUM(EXTRACT(EPOCH FROM (li.logoutTime - li.id.loginTime)) / 3600) " +
-           "FROM LoginInfo li " +
-           "WHERE li.logoutTime IS NOT NULL AND li.id.accountId = :accountId " +
-           "GROUP BY li.id.accountId")
+    // 统计用户的总在线时长（小时） — 使用原生 SQL（PostgreSQL）以避免 JPQL/HQL 对 EXTRACT 的校验问题
+    @Query(value = "SELECT account_id, SUM(EXTRACT(EPOCH FROM (logout_time - login_time)) / 3600) " +
+           "FROM login_info " +
+           "WHERE logout_time IS NOT NULL AND account_id = :accountId " +
+           "GROUP BY account_id", nativeQuery = true)
     Object[] calculateTotalOnlineHours(@Param("accountId") Integer accountId);
     
-    // 查找在线时长超过阈值的会话
-    @Query("SELECT li FROM LoginInfo li " +
-           "WHERE li.logoutTime IS NOT NULL " +
-           "AND (EXTRACT(EPOCH FROM (li.logoutTime - li.id.loginTime)) / 3600) > :hoursThreshold")
+    // 查找在线时长超过阈值的会话 — 使用原生 SQL 返回实体
+    @Query(value = "SELECT * FROM login_info li " +
+           "WHERE li.logout_time IS NOT NULL " +
+           "AND (EXTRACT(EPOCH FROM (li.logout_time - li.login_time)) / 3600) > :hoursThreshold", nativeQuery = true)
     List<LoginInfo> findLongSessions(@Param("hoursThreshold") Double hoursThreshold);
     
     // 自定义查询：查找用户的最后登录时间

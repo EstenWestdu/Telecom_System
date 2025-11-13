@@ -2,6 +2,9 @@ package com.telecom_system.controller;
 
 import com.telecom_system.entity.User;
 import com.telecom_system.service.UserService;
+
+//import jakarta.persistence.criteria.CriteriaBuilder.In;
+
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -108,12 +111,12 @@ public class UserController {
      */
     @PostMapping("/{account}/change-package")
     public ResponseEntity<?> changePackage(@PathVariable Integer account, 
-                                          @RequestParam String packageId) {
+                                          @RequestParam Integer packageId) {
         User user = userService.changePackage(account, packageId);
         return ResponseEntity.ok(Map.of(
             "success", true,
             "message", "套餐变更成功",
-            "newPackage", user.getPackgeId()
+            "newPackage", user.getPackageId()
         ));
     }
     

@@ -3,14 +3,14 @@ package com.telecom_system.entity;
 import java.math.BigDecimal;
 import jakarta.persistence.*;
 
-@Entity
+@Entity  //JPA实体类，映射到数据库表 package_info
 @Table(name = "package_info")
 public class Package {
     @Id
     @Column(name = "id", nullable = false, length = 6, unique = true)
     private Integer id;             // 套餐ID    PK
     
-    @Column(name = "duration", nullable = false)
+    @Column(name = "duration", columnDefinition = "INTERVAL", nullable = false)
     private String duration; // 使用String存储INTERVAL，如 "100 hours"
 
     @Column(name = "cost", nullable = false, precision = 10, scale = 2)
