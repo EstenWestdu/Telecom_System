@@ -39,6 +39,11 @@
 
 启动 TelecomSystemApplication.java  
 
+## 当前进度
+
+已完成后端基本功能开发，前端页面设计中。
+（运行项目需要配置数据库连接，先在postgre服务器下新建telecom_system数据库，再运行相关 SQL 脚本，位于 `SqlScript/` 目录下）
+（测试代码和开发代码（main）的数据库配置均是telecom_system数据库，但是测试代码会回滚数据，不会污染原始数据）
 ## 项目结构
 telecom-system/  
 ├── src/main/java/com/telecom_system/  
