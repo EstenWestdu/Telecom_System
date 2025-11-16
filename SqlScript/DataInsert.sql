@@ -1,3 +1,4 @@
+-- Active: 1763093912586@@127.0.0.1@5432@telecom_system
 -- 插入套餐信息
 INSERT INTO package_info (id, duration, cost) VALUES
 (1, '100 hours', 20.00),

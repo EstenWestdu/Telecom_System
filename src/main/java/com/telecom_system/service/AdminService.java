@@ -1,69 +1,97 @@
 package com.telecom_system.service;
 
-import com.telecom_system.entity.Admin;
-import com.telecom_system.repository.AdminRepository;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import com.telecom_system.entity.User;
+import com.telecom_system.repository.UserRepository;
 
 @Service
 @Transactional
 public class AdminService {
-    
-    private final AdminRepository adminRepository;
-    
-    public AdminService(AdminRepository adminRepository) {
-        this.adminRepository = adminRepository;
+
+    // 注意：这里改成操作 UserRepository，而不是 AdminRepository
+    private final UserRepository userRepository;
+
+    public AdminService(UserRepository userRepository) {
+        this.userRepository = userRepository;
     }
-    
-    // 查找所有管理员
-    public List<Admin> findAllAdmins() {
-        return adminRepository.findAll();
+
+    // ========== 普通用户的增删改查 ==========
+
+    /**
+     * 查询所有普通用户
+     */
+    public List<User> findAllUsers() {
+        return userRepository.findAll();
     }
-    
-    // 根据Account创建新管理员
-    public Admin createAdmin(Admin admin) {
-        if (adminRepository.existsById(admin.getAccount())) {
-            throw new RuntimeException("管理员ID已存在: " + admin.getAccount());
-        }
-        
-        if (adminRepository.existsByName(admin.getName())) {
-            throw new RuntimeException("管理员名已存在: " + admin.getName());
-        }
-        
-        return adminRepository.save(admin);
+
+    /**
+     * 根据 id 查询单个普通用户
+     */
+    public Optional<User> findUserById(Integer id) {
+        return userRepository.findById(id);
     }
-    
-    // 根据Account更新管理员信息
-    public Admin updateAdmin(Integer account, Admin admin) {
-        return adminRepository.findById(account)
-                .map(existingAdmin -> {
-                    if (admin.getName() != null) {
-                        existingAdmin.setName(admin.getName());
+
+    /**
+     * 创建普通用户
+     */
+    public User createUser(User user) {
+        // 根据实际业务做唯一性校验，比如账号/手机号/邮箱等
+        // 示例：假设 User 有 username 字段，且仓库有 existsByUsername
+        // if (userRepository.existsByUsername(user.getUsername())) {
+        //     throw new RuntimeException("用户名已存在: " + user.getUsername());
+        // }
+
+        return userRepository.save(user);
+    }
+
+    /**
+     * 更新普通用户信息
+     */
+    public User updateUser(Integer id, User user) {
+        return userRepository.findById(id)
+                .map(existingUser -> {
+                    // 只更新允许修改的字段
+                    if (user.getName() != null) {
+                        existingUser.setName(user.getName());
                     }
-                    if (admin.getPassword() != null) {
-                        existingAdmin.setPassword(admin.getPassword());
+                    if (user.getPhone() != null) {
+                        existingUser.setPhone(user.getPhone());
                     }
-                    return adminRepository.save(existingAdmin);
+                    if (user.getRole() != null) {
+                        existingUser.setRole(user.getRole());
+                    }
+                    if (user.getPackageId() != null) {
+                        existingUser.setPackageId(user.getPackageId());
+                    }
+                    return userRepository.save(existingUser);
                 })
-                .orElseThrow(() -> new RuntimeException("管理员不存在: " + account));
+                .orElseThrow(() -> new RuntimeException("用户不存在: " + id));
     }
-    
-    // 根据Account删除管理员
-    public void deleteAdmin(Integer account) {
-        if (!adminRepository.existsById(account)) {
-            throw new RuntimeException("管理员不存在: " + account);
+
+    /**
+     * 删除普通用户
+     */
+    public void deleteUser(Integer id) {
+        if (!userRepository.existsById(id)) {
+            throw new RuntimeException("用户不存在: " + id);
         }
-        adminRepository.deleteById(account);
+        userRepository.deleteById(id);
     }
-    
-    // 重置管理员密码
-    public void resetPassword(Integer account) {
-        adminRepository.findById(account)
-                .ifPresent(admin -> {
-                    admin.setPassword("default123"); // 重置为默认密码
-                    adminRepository.save(admin);
+
+    /**
+     * 重置普通用户密码
+     */
+    public void resetUserPassword(Integer id) {
+        userRepository.findById(id)
+                .ifPresent(user -> {
+                    user.setPassword("default123"); // 重置为默认密码，按需修改
+                    userRepository.save(user);
                 });
     }
+    
 }
