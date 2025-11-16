@@ -6,6 +6,7 @@ import com.telecom_system.repository.LoginInfoRepository;
 import com.telecom_system.repository.PackageRepository;
 import com.telecom_system.repository.UserRepository;
 import com.telecom_system.repository.AdminRepository;
+import com.telecom_system.repository.StatisticsRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,15 +26,18 @@ public class StatisticsService {
     private final AdminRepository adminRepository;
     private final PackageRepository packageRepository;
     private final LoginInfoRepository loginInfoRepository;
+    private final StatisticsRepository statisticsRepository;
     
     public StatisticsService(UserRepository userRepository, 
                             AdminRepository adminRepository,
                            PackageRepository packageRepository,
-                           LoginInfoRepository loginInfoRepository) {
+                           LoginInfoRepository loginInfoRepository,
+                           StatisticsRepository statisticsRepository) {
         this.userRepository = userRepository;
         this.adminRepository = adminRepository;
         this.packageRepository = packageRepository;
         this.loginInfoRepository = loginInfoRepository;
+        this.statisticsRepository = statisticsRepository;
     }
     
     /**
@@ -302,5 +306,45 @@ public class StatisticsService {
         distribution.put("mostPopularPackage", mostPopularPackage);
         
         return distribution;
+    }
+
+    /**
+     * 获取每小时在线用户统计
+     * 
+     * 统计一天 24 个小时（0-23）内，每个小时的在线用户数量。
+     * 
+     * @return 包含 24 条记录的列表，每条记录为 Map，包含：
+     *         - hour: 小时数 (0-23)
+     *         - onlineUserCount: 该小时的在线用户数
+     * 
+     * 示例返回数据：
+     * [
+     *   {"hour": 0, "onlineUserCount": 5},
+     *   {"hour": 1, "onlineUserCount": 3},
+     *   ...
+     *   {"hour": 23, "onlineUserCount": 8}
+     * ]
+     */
+    public List<Map<String, Object>> getHourlyOnlineUserStatistics() {
+        List<Object[]> results = statisticsRepository.getHourlyOnlineUserStatistics();
+        
+        return results.stream()
+                .map(result -> {
+                    Map<String, Object> hourlyStats = new HashMap<>();
+                    
+                    // 提取小时数和在线用户数
+                    Integer hour = ((Number) result[0]).intValue();
+                    Long onlineUserCount = ((Number) result[1]).longValue();
+                    
+                    hourlyStats.put("hour", hour);
+                    hourlyStats.put("onlineUserCount", onlineUserCount);
+                    
+                    // 格式化小时显示（例如：00:00 - 00:59）
+                    String timeRange = String.format("%02d:00 - %02d:59", hour, hour);
+                    hourlyStats.put("timeRange", timeRange);
+                    
+                    return hourlyStats;
+                })
+                .collect(Collectors.toList());
     }
 }

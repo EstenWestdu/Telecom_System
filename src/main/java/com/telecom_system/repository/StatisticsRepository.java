@@ -28,4 +28,29 @@ public interface StatisticsRepository extends JpaRepository<User, Integer> {
            "GROUP BY u.account, u.name " +
            "ORDER BY total_hours DESC", nativeQuery = true)
     List<Object[]> getUserActivityStatistics();
+
+    /**
+     * 统计一天 24 个小时每个小时的在线用户数量
+     * 
+     * 结果为 24 条记录，每条包含：
+     * - hour: 小时数 (0-23)
+     * - online_user_count: 该小时的在线用户数
+     * 
+     * 统计逻辑：如果登录时间的小时数 <= 当前小时 < 登出时间的小时数，则视为该小时在线。
+     * 当登出时间为 null（未登出）的用户，如果登录时间的小时数 <= 当前小时，则视为该小时在线。
+     */
+    @Query(value = "SELECT " +
+           "  hour_series.hour, " +
+           "  COUNT(DISTINCT li.account_id) AS online_user_count " +
+           "FROM " +
+           "  (SELECT 0 AS hour UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5 " +
+           "   UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9 UNION SELECT 10 UNION SELECT 11 " +
+           "   UNION SELECT 12 UNION SELECT 13 UNION SELECT 14 UNION SELECT 15 UNION SELECT 16 UNION SELECT 17 " +
+           "   UNION SELECT 18 UNION SELECT 19 UNION SELECT 20 UNION SELECT 21 UNION SELECT 22 UNION SELECT 23) AS hour_series " +
+           "LEFT JOIN login_info li ON " +
+           "  (EXTRACT(HOUR FROM li.login_time) <= hour_series.hour) AND " +
+           "  (li.logout_time IS NULL OR EXTRACT(HOUR FROM li.logout_time) > hour_series.hour) " +
+           "GROUP BY hour_series.hour " +
+           "ORDER BY hour_series.hour", nativeQuery = true)
+    List<Object[]> getHourlyOnlineUserStatistics();
 }

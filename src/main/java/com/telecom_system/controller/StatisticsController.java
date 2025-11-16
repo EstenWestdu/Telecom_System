@@ -42,6 +42,14 @@ public class StatisticsController {
     public ResponseEntity<?> getUserActivityStatistics() {
         return ResponseEntity.ok(statisticsService.getUserActivityStatistics());
     }
+
+    /**
+     * 获取小时活跃度统计
+     */
+    @GetMapping("/user-hourly-activity")
+    public ResponseEntity<?> getHourlyOnlineUserStatistics() {
+        return ResponseEntity.ok(statisticsService.getHourlyOnlineUserStatistics());
+    }
     
     /**
      * 获取收入统计

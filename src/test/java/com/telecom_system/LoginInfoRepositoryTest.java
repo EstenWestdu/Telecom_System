@@ -3,6 +3,7 @@ package com.telecom_system;
 import com.telecom_system.entity.LoginInfo;
 import com.telecom_system.entity.User;
 import com.telecom_system.repository.LoginInfoRepository;
+import com.telecom_system.repository.StatisticsRepository;
 import com.telecom_system.repository.UserRepository;
 
 import org.junit.jupiter.api.Test;
@@ -50,6 +51,24 @@ class LoginInfoRepositoryTest {
     @Autowired
     private UserRepository userRepository;
     
+    @Autowired
+    private StatisticsRepository statisticsRepository;
+
+    @Test 
+    void testHourlyOnlineUserStatistics() {
+        // 测试按小时统计在线用户数量
+        System.out.println("-- testHourlyOnlineUserStatistics begin --");
+        List<Object[]> stats = statisticsRepository.getHourlyOnlineUserStatistics();
+        System.out.println("Hourly Online User Statistics:");
+        for (Object[] record : stats) {
+            Integer hour = (Integer) record[0];
+            Long onlineUserCount = ((Number) record[1]).longValue();
+            System.out.printf("Hour: %02d, Online Users: %d%n", hour, onlineUserCount);
+        }
+        System.out.println("-- testHourlyOnlineUserStatistics over --\n");
+        
+    }
+
     @Test
     void testFindByIdAccountId() {
         // 测试根据用户ID查找登录记录
