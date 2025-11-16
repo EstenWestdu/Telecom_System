@@ -1,61 +1,75 @@
 package com.telecom_system.controller;
 
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
 import com.telecom_system.service.LoginService;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import com.telecom_system.service.LoginInfoService;
+import com.telecom_system.entity.User;
 
-import java.util.HashMap;
-import java.util.Map;
+import jakarta.servlet.http.HttpSession;
 
-@RestController
-@RequestMapping("/api/auth")
+@Controller
+@RequestMapping("/login")
 @CrossOrigin(origins = "*")
 public class AuthController {
     
     private final LoginService loginService;
-    
-    public AuthController(LoginService loginService) {
+    private final LoginInfoService loginInfoService;
+
+    public AuthController(LoginService loginService, LoginInfoService loginInfoService) {
         this.loginService = loginService;
+        this.loginInfoService = loginInfoService;
     }
     
     /**
      * 用户登录
      */
-    @PostMapping("/user/login")
-    public ResponseEntity<?> userLogin(@RequestParam String identifier, 
-                                      @RequestParam String password) {
+    @PostMapping("/user")
+    public String userLogin(@RequestParam String identifier, 
+                            @RequestParam String password,
+                            HttpSession session,
+                            RedirectAttributes redirectAttributes) {
         return loginService.userLogin(identifier, password)
                 .map(user -> {
-                    Map<String, Object> response = new HashMap<>();
-                    response.put("success", true);
-                    response.put("message", "用户登录成功");
-                    response.put("data", user);
-                    response.put("userType", "USER");
-                    return ResponseEntity.ok(response);
+                    // 记录登录时间
+                    try {
+                        loginInfoService.recordLogin(user.getAccount());
+                    } catch (Exception e) {
+                        // 记录失败不应阻塞登录
+                        e.printStackTrace();
+                    }
+                    session.setAttribute("user",user);
+                    return "redirect:/user/menu";
                 })
-                .orElse(ResponseEntity.status(401).body(
-                    Map.of("success", false, "message", "用户名或密码错误")
-                ));
+                .orElseGet(() -> {
+                    redirectAttributes.addFlashAttribute("error", "用户名或密码错误");
+                    return "redirect:/login";
+                });
     }
     
     /**
      * 管理员登录
      */
-    @PostMapping("/admin/login")
-    public ResponseEntity<?> adminLogin(@RequestParam String identifier, 
-                                       @RequestParam String password) {
+    @PostMapping("/admin")
+    public String adminLogin(@RequestParam String identifier, 
+                                       @RequestParam String password,
+                                       HttpSession session,
+                                       RedirectAttributes redirectAttributes) {
         return loginService.adminLogin(identifier, password)
                 .map(admin -> {
-                    Map<String, Object> response = new HashMap<>();
-                    response.put("success", true);
-                    response.put("message", "管理员登录成功");
-                    response.put("data", admin);
-                    response.put("userType", "ADMIN");
-                    return ResponseEntity.ok(response);
+                    session.setAttribute("admin", admin);
+                    return "redirect:/admin/menu";
                 })
-                .orElse(ResponseEntity.status(401).body(
-                    Map.of("success", false, "message", "管理员账号或密码错误")
-                ));
+                .orElseGet(()->{
+                    redirectAttributes.addFlashAttribute("error", "管理员用户名或密码错误");
+                    return "redirect:/login";
+                });
     }
     
    
@@ -63,9 +77,30 @@ public class AuthController {
     /**
      * 退出登录（记录登出时间）
      */
-    @PostMapping("/logout")
-    public ResponseEntity<?> logout(@RequestParam Integer accountId) {
-        // 调用服务记录登出时间
-        return ResponseEntity.ok(Map.of("success", true, "message", "退出成功"));
+    @GetMapping("/logout")
+    public String logout(HttpSession session, org.springframework.ui.Model model) {
+        Object userObj = session.getAttribute("user");
+        Object adminObj = session.getAttribute("admin");
+        String userName = null;
+
+        if (userObj instanceof User) {
+            User u = (User) userObj;
+            Integer accountId = u.getAccount();
+            userName = u.getName();
+            try {
+                loginInfoService.recordLogout(accountId);
+            } catch (Exception e) {
+                // 记录登出失败：打印日志但继续登出流程
+                e.printStackTrace();
+            }
+        } else if (adminObj instanceof com.telecom_system.entity.Admin) {
+            // 管理员仅显示名字，不记录上线/下线
+            userName = ((com.telecom_system.entity.Admin) adminObj).getName();
+        }
+
+        // 在失效 session 之前把需要显示的数据放入 model
+        model.addAttribute("userName", userName);
+        session.invalidate();
+        return "logout";
     }
 }

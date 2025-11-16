@@ -1,27 +1,38 @@
 package com.telecom_system.controller;
 
-import com.telecom_system.entity.User;
-import com.telecom_system.service.UserService;
-
-//import jakarta.persistence.criteria.CriteriaBuilder.In;
-
-import org.springframework.data.domain.Page;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-@RestController
-@RequestMapping("/api/users")
+import org.springframework.data.domain.Page;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import com.telecom_system.entity.User;
+import com.telecom_system.service.UserService;
+import com.telecom_system.service.PackageService;
+import jakarta.servlet.http.HttpSession;
+import com.telecom_system.entity.Package;
+@Controller
+@RequestMapping("/user")
 @CrossOrigin(origins = "*")
 public class UserController {
     
     private final UserService userService;
-    
-    public UserController(UserService userService) {
+    private final PackageService packageService;
+    public UserController(UserService userService, PackageService packageService) {
         this.userService = userService;
+        this.packageService = packageService;
     }
     
     /**
@@ -32,6 +43,18 @@ public class UserController {
         return ResponseEntity.ok(userService.findAllUsers());
     }
     
+    /**
+     * 获取用户主菜单
+     */
+    @GetMapping("/menu")
+    public String getAdminMenu(Model model, HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        List<Package> packages = packageService.findAllPackages();
+        model.addAttribute("user", user);
+        model.addAttribute("packages", packages);
+        return "user_menu";
+    }
+
     /**
      * 分页查询用户
      */

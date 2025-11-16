@@ -14,10 +14,10 @@
                         <h3 class="text-center">电信信息采集系统</h3>
                     </div>
                     <div class="card-body">
-                        <form th:action="@{/login}" method="post">
+                        <form id="loginForm" th:action="@{/login}" method="post">
                             <div class="mb-3">
-                                <label for="username" class="form-label">用户名</label>
-                                <input type="text" class="form-control" id="username" name="username" required>
+                                <label for="identifier" class="form-label">用户名</label>
+                                <input type="text" class="form-control" id="identifier" name="identifier" required>
                             </div>
                             <div class="mb-3">
                                 <label for="password" class="form-label">密码</label>
@@ -38,6 +38,37 @@
                             </div>
                             <button type="submit" class="btn btn-primary w-100">登录</button>
                         </form>
+                        
+                        <script>
+                            document.addEventListener("DOMContentLoaded", function () {
+                            // 获取表单和单选按钮
+                                const form = document.getElementById("loginForm");
+                                const userTypeRadios = document.getElementsByName("role");
+                                const checked=document.querySelector('input[name="role"]:checked');
+                                if(checked.value==="NORMAL"){
+                                    form.action="/login/user";
+                                }else if(checked.value==="ENTERPRISE"){
+                                    form.action="/login/admin";}
+                            // 监听单选按钮的变化
+                                userTypeRadios.forEach(radio => {
+                                    radio.addEventListener("change", function () {
+                                        if (this.value === "NORMAL") {
+                                            form.action = "/login/user"; // 普通用户路径
+                                        } else if (this.value === "ENTERPRISE") {
+                                            form.action = "/login/admin"; // 企业用户路径
+                                        }
+                                    });
+                                });
+                            });
+                        </script>
+                        <script th:inline="javascript">
+                            document.addEventListener("DOMContentLoaded", function () {
+                                let errorMsg = [[${error} == null ? 'null' : '"' + ${error} + '"']];
+                                if (errorMsg !== 'null') {
+                                    alert(errorMsg);
+                                }
+                            });
+                        </script>
                     </div>
                 </div>
             </div>

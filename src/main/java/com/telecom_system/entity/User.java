@@ -1,15 +1,20 @@
 package com.telecom_system.entity;
 
-import jakarta.persistence.*;
-// import jakarta.persistence.criteria.CriteriaBuilder.In;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "user_info")
 public class User {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // 自动递增
     @Column(name = "account",nullable = false,length = 6, unique = true)
     private Integer account;                    //用户ID    PK
     
