@@ -11,7 +11,7 @@ CREATE TABLE package_info (
 );
 -- 创建用户信息表
 CREATE TABLE user_info (
-    account INT PRIMARY KEY,
+    account SERIAL PRIMARY KEY,
     name VARCHAR(20) NOT NULL,
     password VARCHAR(20) NOT NULL,
 	phone VARCHAR(20) NOT NULL,
@@ -35,3 +35,5 @@ CREATE TABLE login_info (
     PRIMARY KEY (account_id, login_time),
     FOREIGN KEY (account_id) REFERENCES user_info(account)
 );
+-- 设置用户账号从200001开始
+ALTER SEQUENCE user_info_account_seq RESTART WITH 200001;

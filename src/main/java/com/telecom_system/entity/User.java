@@ -15,7 +15,7 @@ import jakarta.persistence.Table;
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY) // 自动递增
-    @Column(name = "account",nullable = false,length = 6, unique = true)
+    @Column(name = "account",nullable = false,unique = true)
     private Integer account;                    //用户ID    PK
     
     @Column(name = "name", nullable = false, length = 20)
@@ -41,8 +41,7 @@ public class User {
     // 构造方法
     public User() {}
     
-    public User(Integer account, String name, String password, BigDecimal balance, Integer packageId) {
-        this.account = account;
+    public User(String name, String password, BigDecimal balance, Integer packageId) {
         this.name = name;
         this.password = password;
         this.balance = balance;
@@ -51,7 +50,6 @@ public class User {
     
     // Getter和Setter方法
     public Integer getAccount() { return account; }
-    public void setAccount(Integer account) { this.account = account; }
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }

@@ -9,12 +9,12 @@ INSERT INTO admin_info (account, name, password) VALUES
 (100001, 'admin', 'admin123');
 
 -- 插入用户信息
-INSERT INTO user_info (account, name, password, balance, package_id, phone) VALUES
-(200001, '张三', 'zhangsan123', 100.50, '1', '13800138001'),
-(200002, '李四', 'lisi123', 50.00, '2', '13800138002'),
-(200003, '王五', 'wangwu123', 200.00, '1', '13800138003'),
-(200004, '赵六', 'zhaoliu123', 75.80, '2', '13800138004'),
-(200005, '钱七', 'qianqi123', 30.25, '1', '13800138005');
+INSERT INTO user_info (name, password, balance, package_id, phone) VALUES
+('张三', 'zhangsan123', 100.50, '1', '13800138001'),
+('李四', 'lisi123', 50.00, '2', '13800138002'),
+('王五', 'wangwu123', 200.00, '1', '13800138003'),
+('赵六', 'zhaoliu123', 75.80, '2', '13800138004'),
+('钱七', 'qianqi123', 30.25, '1', '13800138005');
 
 -- 插入登录信息（为5个用户生成30条登录记录）
 -- 用户200001的登录记录

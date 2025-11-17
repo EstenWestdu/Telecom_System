@@ -20,30 +20,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Transactional  // 测试完成后回滚数据
 class LoginInfoRepositoryTest {
 
-    // Helper: 创建示例用户和登录信息
-    private void createSampleData() {
-        // user 200001 with one login (logout_time null)
-        if (!userRepository.existsById(200001)) {
-            User u1 = new User();
-            u1.setAccount(200001);
-            u1.setName("测试用户1");
-            u1.setPassword("pass123");
-            u1.setBalance(new java.math.BigDecimal("100.00"));
-            u1.setPackageId(1);
-            u1.setPhone("13800138001");
-            userRepository.save(u1);
-        }
-
-        if (loginInfoRepository.findByIdAccountId(200001).isEmpty()) {
-            LoginInfo.LoginInfoPK pk = new LoginInfo.LoginInfoPK();
-            pk.setAccountId(200001);
-            pk.setLoginTime(LocalDateTime.now().minusHours(1));
-            LoginInfo li = new LoginInfo();
-            li.setId(pk);
-            // leave logoutTime null to represent online user
-            loginInfoRepository.save(li);
-        }
-    }
     
     @Autowired
     private LoginInfoRepository loginInfoRepository;
@@ -72,7 +48,6 @@ class LoginInfoRepositoryTest {
     @Test
     void testFindByIdAccountId() {
         // 测试根据用户ID查找登录记录
-        createSampleData();
         System.out.println("-- testFindByIdAccountId begin --");
         long total = loginInfoRepository.count();
         System.out.println("login_info all_records: " + total);
@@ -86,7 +61,6 @@ class LoginInfoRepositoryTest {
     @Test
     void testFindByLogoutTimeIsNull() {
         // 测试查找在线用户
-        createSampleData();
         System.out.println("-- testFindByLogoutTimeIsNull begin --");
         List<LoginInfo> onlineUsers = loginInfoRepository.findByLogoutTimeIsNull();
         System.out.println("login_in uesrs (logout_time is null): " + onlineUsers.size());
@@ -95,6 +69,8 @@ class LoginInfoRepositoryTest {
         System.out.println("-- testFindByLogoutTimeIsNull over --\n");
     }
     
+    
+
     @Test
     void testSaveAndFindLoginInfo() {
         // 测试保存和查询登录信息
@@ -112,7 +88,6 @@ class LoginInfoRepositoryTest {
 
         // 先创建并保存一个对应的用户，避免外键约束失败
         User u = new User();
-        u.setAccount(999999);
         u.setName("test_user");
         u.setPassword("password");
         u.setBalance(new java.math.BigDecimal("0.00"));

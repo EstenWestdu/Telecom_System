@@ -3,6 +3,8 @@ package com.telecom_system.service;
 import com.telecom_system.entity.User;
 import com.telecom_system.repository.UserRepository;
 
+import org.springframework.dao.DataIntegrityViolationException;
+
 //import jakarta.persistence.criteria.CriteriaBuilder.In;
 
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -149,96 +151,102 @@ public class UserService {
      * 更改用户套餐
      */
     public User changePackage(Integer account, Integer packageId) {
+        try {
         return userRepository.findById(account)
                 .map(user -> {
                     user.setPackageId(packageId);
                     return userRepository.save(user);
                 })
                 .orElseThrow(() -> new RuntimeException("用户不存在: " + account));
+                
+        } catch (DataIntegrityViolationException e) {
+            // 处理外键约束违反异常
+            throw new RuntimeException("套餐不存在或无效: " + packageId);
+        }
     }
     
     /**
- * 获取用户剩余时长信息 - 使用原生SQL替代视图
- */
-public Map<String, Object> getRemainingTime(Integer account) {
-    // 首先验证用户是否存在
-    User user = userRepository.findById(account)
-            .orElseThrow(() -> new RuntimeException("用户不存在: " + account));
-    
-    // 使用原生SQL替代视图查询
-    String sql = """
-        SELECT 
-            u.account,
-            u.name,
-            u.phone,
-            p.duration as total_duration,
-            COALESCE(SUM(EXTRACT(EPOCH FROM (l.logout_time - l.login_time))), 0) as used_seconds,
-            COALESCE(SUM(EXTRACT(EPOCH FROM (l.logout_time - l.login_time)) / 3600), 0) as used_hours,
-            (EXTRACT(EPOCH FROM p.duration::interval) - COALESCE(SUM(EXTRACT(EPOCH FROM (l.logout_time - l.login_time))), 0)) as remaining_seconds,
-            ((EXTRACT(EPOCH FROM p.duration::interval) - COALESCE(SUM(EXTRACT(EPOCH FROM (l.logout_time - l.login_time))), 0)) / 3600) as remaining_hours,
-            u.balance,
-            p.cost,
-            CASE 
-                WHEN (EXTRACT(EPOCH FROM p.duration::interval) - COALESCE(SUM(EXTRACT(EPOCH FROM (l.logout_time - l.login_time))), 0)) < 0 
-                THEN '已超时'
-                ELSE '正常'
-            END as status
-        FROM user_info u
-        JOIN package_info p ON u.package_id = p.id
-        LEFT JOIN login_info l ON u.account = l.account_id 
-            AND l.logout_time IS NOT NULL
-        WHERE u.account = ?
-        GROUP BY u.account, u.name, u.phone, p.duration, u.balance, p.cost
-        """;
-    
-    try {
-        Map<String, Object> queryData = jdbcTemplate.queryForMap(sql, account);
+    * 获取用户剩余时长信息 - 使用原生SQL替代视图
+    */
+    public Map<String, Object> getRemainingTime(Integer account) {
+        // 首先验证用户是否存在
+        User user = userRepository.findById(account)
+                .orElseThrow(() -> new RuntimeException("用户不存在: " + account));
         
-        // 处理返回数据
-        Map<String, Object> result = new HashMap<>();
-        result.put("account", user.getAccount());
-        result.put("name", user.getName());
-        result.put("phone", user.getPhone());
-        result.put("packageId", user.getPackageId());
-        result.put("balance", user.getBalance());
+        // 使用原生SQL替代视图查询
+        String sql = """
+            SELECT 
+                u.account,
+                u.name,
+                u.phone,
+                p.duration as total_duration,
+                COALESCE(SUM(EXTRACT(EPOCH FROM (l.logout_time - l.login_time))), 0) as used_seconds,
+                COALESCE(SUM(EXTRACT(EPOCH FROM (l.logout_time - l.login_time)) / 3600), 0) as used_hours,
+                (EXTRACT(EPOCH FROM p.duration::interval) - COALESCE(SUM(EXTRACT(EPOCH FROM (l.logout_time - l.login_time))), 0)) as remaining_seconds,
+                ((EXTRACT(EPOCH FROM p.duration::interval) - COALESCE(SUM(EXTRACT(EPOCH FROM (l.logout_time - l.login_time))), 0)) / 3600) as remaining_hours,
+                u.balance,
+                p.cost,
+                CASE 
+                    WHEN (EXTRACT(EPOCH FROM p.duration::interval) - COALESCE(SUM(EXTRACT(EPOCH FROM (l.logout_time - l.login_time))), 0)) < 0 
+                    THEN '已超时'
+                    ELSE '正常'
+                END as status
+            FROM user_info u
+            JOIN package_info p ON u.package_id = p.id
+            LEFT JOIN login_info l ON u.account = l.account_id 
+                AND l.logout_time IS NOT NULL
+            WHERE u.account = ?
+            GROUP BY u.account, u.name, u.phone, p.duration, u.balance, p.cost
+            """;
         
-        // 计算时间格式
-        Double totalSeconds = (Double) queryData.get("used_seconds");
-        Double remainingSeconds = (Double) queryData.get("remaining_seconds");
-        Double remainingHours = (Double) queryData.get("remaining_hours");
-        
-        result.put("totalDuration", queryData.get("total_duration"));
-        result.put("usedDuration", formatDuration(totalSeconds));
-        result.put("remainingDuration", formatDuration(remainingSeconds));
-        result.put("remainingHours", Math.round(remainingHours * 100.0) / 100.0);
-        result.put("status", queryData.get("status"));
-        result.put("packageCost", queryData.get("cost"));
-        
-        return result;
-        
-    } catch (EmptyResultDataAccessException e) {
-        throw new RuntimeException("用户剩余时长信息不存在: " + account);
+        try {
+            Map<String, Object> queryData = jdbcTemplate.queryForMap(sql, account);
+            
+            // 处理返回数据
+            Map<String, Object> result = new HashMap<>();
+            result.put("account", user.getAccount());
+            result.put("name", user.getName());
+            result.put("phone", user.getPhone());
+            result.put("packageId", user.getPackageId());
+            result.put("balance", user.getBalance());
+            
+            // 计算时间格式
+            Double totalSeconds = (Double) queryData.get("used_seconds");
+            Double remainingSeconds = (Double) queryData.get("remaining_seconds");
+            Double remainingHours = (Double) queryData.get("remaining_hours");
+            
+            result.put("totalDuration", queryData.get("total_duration"));
+            result.put("usedDuration", formatDuration(totalSeconds));
+            result.put("remainingDuration", formatDuration(remainingSeconds));
+            result.put("remainingHours", Math.round(remainingHours * 100.0) / 100.0);
+            result.put("status", queryData.get("status"));
+            result.put("packageCost", queryData.get("cost"));
+            
+            return result;
+            
+        } catch (EmptyResultDataAccessException e) {
+            throw new RuntimeException("用户剩余时长信息不存在: " + account);
+        }
     }
-}
 
-/**
- * 将秒数格式化为易读的时长字符串
- */
-private String formatDuration(Double seconds) {
-    if (seconds == null || seconds == 0) {
-        return "0小时";
+    /**
+     * 将秒数格式化为易读的时长字符串
+     */
+    private String formatDuration(Double seconds) {
+        if (seconds == null || seconds == 0) {
+            return "0小时";
+        }
+        
+        long totalSeconds = seconds.longValue();
+        long hours = totalSeconds / 3600;
+        long minutes = (totalSeconds % 3600) / 60;
+        
+        if (minutes == 0) {
+            return hours + "小时";
+        } else {
+            return hours + "小时" + minutes + "分钟";
+        }
     }
-    
-    long totalSeconds = seconds.longValue();
-    long hours = totalSeconds / 3600;
-    long minutes = (totalSeconds % 3600) / 60;
-    
-    if (minutes == 0) {
-        return hours + "小时";
-    } else {
-        return hours + "小时" + minutes + "分钟";
-    }
-}
 
     
     /**
