@@ -41,8 +41,9 @@
 
 ## 当前进度
 
-已完成后端基本功能开发，前端页面设计中。  
-（运行项目需要配置数据库连接，先在postgre服务器下新建telecom_system数据库，再运行相关 SQL 脚本，位于 `SqlScript/` 目录下）  
+已完成后端基本功能开发，前端页面设计基本完成。  
+（运行项目需要配置数据库连接，先在postgre服务器下新建telecom_system数据库，再运行相关 SQL 脚本，位于 `SqlScript/` 目录下）   
+（运行`TelecomSystemApplication.java`，打开8080端口访问前端页面）
 （测试代码（test）和开发代码（main）的数据库配置均是telecom_system数据库，但是测试代码会回滚数据，不会污染原始数据）  
 （测试代码运行 `LoginInfoRepositoryTest.java`，验证本地数据库存取信息有无障碍）  
 
