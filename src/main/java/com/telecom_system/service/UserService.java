@@ -188,69 +188,8 @@ public class UserService {
         // 首先验证用户是否存在
         User user = userRepository.findById(account)
                 .orElseThrow(() -> new RuntimeException("用户不存在: " + account));
-        
-        // 使用原生SQL替代视图查询
-        String sql = """
-            SELECT 
-                u.account,
-                u.name,
-                u.phone,
-                p.duration as total_duration,
-                COALESCE(SUM(
-                    CASE 
-                        WHEN l.logout_time IS NOT NULL THEN 
-                            EXTRACT(EPOCH FROM (l.logout_time - l.login_time))
-                        ELSE 
-                            EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - l.login_time))
-                    END
-                ), 0) as used_seconds,
-                COALESCE(SUM(
-                    CASE 
-                        WHEN l.logout_time IS NOT NULL THEN 
-                            EXTRACT(EPOCH FROM (l.logout_time - l.login_time)) / 3600
-                        ELSE 
-                            EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - l.login_time)) / 3600
-                    END
-                ), 0) as used_hours,
-                (EXTRACT(EPOCH FROM p.duration::interval) - COALESCE(SUM(
-                    CASE 
-                        WHEN l.logout_time IS NOT NULL THEN 
-                            EXTRACT(EPOCH FROM (l.logout_time - l.login_time))
-                        ELSE 
-                            EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - l.login_time))
-                    END
-                ), 0)) as remaining_seconds,
-                ((EXTRACT(EPOCH FROM p.duration::interval) - COALESCE(SUM(
-                    CASE 
-                        WHEN l.logout_time IS NOT NULL THEN 
-                            EXTRACT(EPOCH FROM (l.logout_time - l.login_time))
-                        ELSE 
-                            EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - l.login_time))
-                    END
-                ), 0)) / 3600) as remaining_hours,
-                u.balance,
-                p.cost,
-                CASE 
-                    WHEN (EXTRACT(EPOCH FROM p.duration::interval) - COALESCE(SUM(
-                        CASE 
-                            WHEN l.logout_time IS NOT NULL THEN 
-                                EXTRACT(EPOCH FROM (l.logout_time - l.login_time))
-                            ELSE 
-                                EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - l.login_time))
-                        END
-                    ), 0)) < 0 
-                    THEN '已超时'
-                    ELSE '正常'
-                END as status
-            FROM user_info u
-            JOIN package_info p ON u.package_id = p.id
-            LEFT JOIN login_info l ON u.account = l.account_id 
-                AND l.login_time >= u.package_start_time
-            WHERE u.account = ?
-            GROUP BY u.account, u.name, u.phone, p.duration, u.balance, p.cost
-            """;
         try {
-            Map<String, Object> queryData = jdbcTemplate.queryForMap(sql, account);
+            Map<String, Object> queryData = userRepository.findRemainingTimeByAccount(account);
             
             // 处理返回数据
             Map<String, Object> result = new HashMap<>();

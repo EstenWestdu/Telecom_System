@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Repository
@@ -94,6 +95,68 @@ public interface UserRepository extends JpaRepository<User, Integer> {
         @Param("minBalance") Double minBalance, 
         @Param("packageId") Integer packageId
     );
+
+    //自定义查询：查找用户剩余时长
+    @Query(value = """
+        SELECT 
+            u.account,
+            u.name,
+            u.phone,
+            p.duration as total_duration,
+            COALESCE(SUM(
+                CASE 
+                    WHEN l.logout_time IS NOT NULL THEN 
+                        EXTRACT(EPOCH FROM (l.logout_time - l.login_time))
+                    ELSE 
+                        EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - l.login_time))
+                END
+            ), 0) as used_seconds,
+            COALESCE(SUM(
+                CASE 
+                    WHEN l.logout_time IS NOT NULL THEN 
+                        EXTRACT(EPOCH FROM (l.logout_time - l.login_time)) / 3600
+                    ELSE 
+                        EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - l.login_time)) / 3600
+                END
+            ), 0) as used_hours,
+            (EXTRACT(EPOCH FROM p.duration::interval) - COALESCE(SUM(
+                CASE 
+                    WHEN l.logout_time IS NOT NULL THEN 
+                        EXTRACT(EPOCH FROM (l.logout_time - l.login_time))
+                    ELSE 
+                        EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - l.login_time))
+                END
+            ), 0)) as remaining_seconds,
+            ((EXTRACT(EPOCH FROM p.duration::interval) - COALESCE(SUM(
+                CASE 
+                    WHEN l.logout_time IS NOT NULL THEN 
+                        EXTRACT(EPOCH FROM (l.logout_time - l.login_time))
+                    ELSE 
+                        EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - l.login_time))
+                END
+            ), 0)) / 3600) as remaining_hours,
+            u.balance,
+            p.cost,
+            CASE 
+                WHEN (EXTRACT(EPOCH FROM p.duration::interval) - COALESCE(SUM(
+                    CASE 
+                        WHEN l.logout_time IS NOT NULL THEN 
+                            EXTRACT(EPOCH FROM (l.logout_time - l.login_time))
+                        ELSE 
+                            EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - l.login_time))
+                    END
+                ), 0)) < 0 
+                THEN '已超时'
+                ELSE '正常'
+            END as status
+        FROM user_info u
+        JOIN package_info p ON u.package_id = p.id
+        LEFT JOIN login_info l ON u.account = l.account_id 
+            AND l.login_time >= u.package_start_time
+        WHERE u.account = ?1
+        GROUP BY u.account, u.name, u.phone, p.duration, u.balance, p.cost
+        """, nativeQuery = true)
+    Map<String, Object> findRemainingTimeByAccount(Integer account);
 
     List<User> findByNameContaining(String name);
  
