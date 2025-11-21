@@ -1,18 +1,19 @@
 package com.telecom_system.service;
 
-import com.telecom_system.entity.LoginInfo;
-import com.telecom_system.entity.User;
-import com.telecom_system.repository.LoginInfoRepository;
-import com.telecom_system.repository.UserRepository;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.telecom_system.entity.LoginInfo;
+import com.telecom_system.entity.User;
+import com.telecom_system.repository.LoginInfoRepository;
+import com.telecom_system.repository.UserRepository;
 
 @Service
 @Transactional
@@ -30,13 +31,36 @@ public class LoginInfoService {
      * 记录用户登录
      */
     public LoginInfo recordLogin(Integer accountId) {
-        
-        // 创建登录记录
-        LoginInfo loginInfo = new LoginInfo();
-        loginInfo.setId(new LoginInfo.LoginInfoPK(accountId, LocalDateTime.now()));
-        // logout_time 为 null，表示用户在线
-        
-        return loginInfoRepository.save(loginInfo);
+        // 如果已有未登出的会话则复用该记录（不创建新条目），避免重复会话记录
+        try {
+            java.util.List<LoginInfo> activeSessions = loginInfoRepository.findByIdAccountIdAndLogoutTimeIsNull(accountId);
+            if (activeSessions != null && !activeSessions.isEmpty()) {
+                // 返回最后一个未下线的会话（最近的活跃会话）
+                return activeSessions.get(activeSessions.size() - 1);
+            }
+        } catch (Exception e) {
+            // 查询出现问题时不影响登录主流程，继续尝试创建新会话
+        }
+
+        // 创建登录记录，注意 login_time 与数据库主键相关，极少数情况下可能因时间精度冲突导致主键冲突
+        int maxAttempts = 5;
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        for (int attempt = 0; attempt < maxAttempts; attempt++) {
+            try {
+                LoginInfo loginInfo = new LoginInfo();
+                loginInfo.setId(new LoginInfo.LoginInfoPK(accountId, now));
+                // logout_time 为 null，表示用户在线
+                return loginInfoRepository.save(loginInfo);
+            } catch (org.springframework.dao.DataIntegrityViolationException dive) {
+                // 可能是主键冲突（相同 accountId + login_time），微调时间并重试
+                now = now.plusNanos(1_000_000);
+                if (attempt == maxAttempts - 1) {
+                    throw dive;
+                }
+            }
+        }
+        // 理论上不会到达这里
+        return null;
     }
     
     /**

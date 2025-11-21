@@ -29,6 +29,7 @@ public class UserService {
     
     private final UserRepository userRepository;
     private final PackageRepository packageRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     public UserService(UserRepository userRepository,PackageRepository packageRepository, JdbcTemplate jdbcTemplate) {
         this.userRepository = userRepository;

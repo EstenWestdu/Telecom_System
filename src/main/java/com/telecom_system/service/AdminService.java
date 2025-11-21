@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +30,13 @@ public class AdminService {
      */
     public List<User> findAllByOrderByAccountAsc() {
         return userRepository.findAllByOrderByAccountAsc();
+    }
+
+    /**
+     * 分页查询（支持自定义排序）
+     */
+    public Page<User> findAllPaged(Pageable pageable) {
+        return userRepository.findAll(pageable);
     }
 
     /**

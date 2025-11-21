@@ -6,6 +6,23 @@
     <!-- Bootstrap 5 CSS（CDN，如需离线请改成本地文件） -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
           rel="stylesheet">
+    <link rel="icon" href="data:;base64,=">
+    <style>
+        .user-table-wrapper {
+            max-height: 520px; /* 约 10 行高度，可按需微调 */
+            overflow-y: auto;
+        }
+
+        #tableLoading {
+            display: none;
+            position: absolute;
+            inset: 56px 0 0 0; /* 头部高度约 56px */
+            background: rgba(255, 255, 255, 0.75);
+            z-index: 10;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
 </head>
 <body class="bg-light">
 
@@ -39,8 +56,11 @@
         <div class="card-header bg-primary text-white">
             用户列表
         </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
+        <div class="card-body p-0 position-relative">
+            <div class="table-responsive user-table-wrapper" id="userTableWrapper"
+                 th:data-current-page="${pageNumber != null ? pageNumber : 0}"
+                 th:data-total-pages="${totalPages != null ? totalPages : 1}"
+                 th:data-page-size="${pageSize != null ? pageSize : 10}">
                 <table class="table table-striped table-hover mb-0 align-middle">
                     <thead class="table-dark">
                     <tr>
@@ -72,6 +92,18 @@
                     </tbody>
                 </table>
             </div>
+            <div id="tableLoading">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer d-flex justify-content-between align-items-center small text-muted">
+            <span id="pageIndicator"
+                  th:text="${'第 ' + (pageNumber != null ? pageNumber + 1 : 1) + ' 页 / 共 ' + (totalPages != null ? totalPages : 1) + ' 页'}">
+                第 1 页 / 共 1 页
+            </span>
+            <span>滚动或使用滑轮加载更多</span>
         </div>
     </div>
 
@@ -112,20 +144,19 @@
 
 </div>
 <!-- 小时活跃度 Modal -->
-    <div class="modal fade" id="hourlyModal" tabindex="-1" aria-labelledby="hourlyModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="hourlyModalLabel">24小时活跃度</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
-                </div>
-                <div class="modal-body">
-                    <canvas id="hourlyChartCanvas" width="800" height="300"></canvas>
-                    
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
-                </div>
+<div class="modal fade" id="hourlyModal" tabindex="-1" aria-labelledby="hourlyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="hourlyModalLabel">24小时活跃度</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+            </div>
+            <div class="modal-body">
+                <canvas id="hourlyChartCanvas" width="800" height="300"></canvas>
+                
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
             </div>
         </div>
     </div>
@@ -134,282 +165,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <!-- Chart.js 用于绘制折线图 -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script>
-(() => {
-    const apiPrefix = "/admin";
-    // 全局编辑状态：当前正在编辑的行（同一时间只能有一行处于编辑状态）
-    let editingRow = null;
-
-    const handleRequest = (url, method, body) => {
-        console.log(`[handleRequest] url: ${url}, method: ${method}, body:`, body);
-        return fetch(url, {
-            method,
-            headers: { "Content-Type": "application/json" },
-            body: body ? JSON.stringify(body) : undefined
-        }).then(resp => {
-            console.log(`[handleRequest] response status: ${resp.status}`);
-            if (!resp.ok) throw new Error("请求失败，状态码：" + resp.status);
-            return resp.json().catch(() => ({}));
-        });
-    };
-
-    // 显示添加用户表单
-    document.getElementById("addUser").addEventListener("click", () => {
-        console.log("[addUser] 点击添加用户按钮");
-        const card = document.getElementById("addUserCard");
-        const form = document.getElementById("addUserForm");
-        form.reset();
-        card.style.display = "block";
-        card.scrollIntoView({ behavior: "smooth" });
-    });
-
-    // 隐藏添加用户表单
-    document.getElementById("cancelAddUser").addEventListener("click", () => {
-        console.log("[cancelAddUser] 点击取消添加用户按钮");
-        document.getElementById("addUserCard").style.display = "none";
-    });
-
-    // 提交新增用户
-    document.getElementById("addUserForm").addEventListener("submit", function(e) {
-        e.preventDefault();
-        const formData = new FormData(this);
-        const payload = {
-            account:null,
-            name: formData.get("name"),
-            phone: formData.get("phone"),
-            packageId: Number(formData.get("packageId")),
-            balance: Number(formData.get("balance")),
-            password: formData.get("password")
-        };
-        console.log("[addUserForm] 提交数据：", payload);
-        handleRequest(apiPrefix + "/create-user", "POST", payload)
-            .then(() => {
-                console.log("[addUserForm] 添加用户成功，刷新页面");
-                location.reload();
-            })
-            .catch(err => {
-                console.error("[addUserForm] 添加用户失败：", err);
-                alert("添加用户失败：" + err.message);
-            });
-    });
-
-    // 行内编辑：修改 / 保存 + 删除 / 取消
-    document.querySelectorAll(".edit-btn").forEach(btn => {
-        console.log("[edit-btn] 绑定事件", btn);
-        btn.addEventListener("click", function () {
-            const tr = btn.closest("tr");
-            const deleteBtn = tr.querySelector(".delete-btn");
-            console.log("[edit-btn] 点击，当前按钮文本：", btn.textContent.trim());
-
-            if (btn.textContent.trim() === "修改") {
-                // 如果已有其他行在编辑中，阻止同时编辑
-                if (editingRow && editingRow !== tr) {
-                    alert("同时只能编辑一个用户，请先保存或取消当前正在编辑的用户。");
-                    return;
-                }
-
-                // 变为可编辑
-                tr.querySelectorAll("td[data-field]").forEach(td => {
-                    const field = td.getAttribute("data-field");
-                    let inputType = "text";
-                    let originalValue;
-                    
-                    if (field === "balance" || field === "packageId") {
-                        // 从 data-original-value 属性获取原始数值
-                        if(field === "balance")originalValue = td.getAttribute("data-original-value");
-                        else originalValue = td.textContent.trim();
-                        inputType = "number";
-                    } 
-                    else {
-                        // 其他字段直接获取文本内容
-                        originalValue = td.textContent.trim();
-                    }
-                    
-                    console.log(`[edit-btn] 字段${field}变为可编辑，原值：${originalValue}`);
-                    
-                    td.innerHTML =
-                        `<input class="form-control form-control-sm" name="${field}" type="${inputType}" value="${originalValue}">`;
-                });
-
-
-                btn.textContent = "保存";
-
-                // 标记当前正在编辑的行
-                editingRow = tr;
-
-                if (deleteBtn) {
-                    deleteBtn.textContent = "取消";
-                    deleteBtn.classList.add("btn-secondary");
-                    deleteBtn.classList.remove("btn-danger");
-                    const newDeleteBtn = deleteBtn.cloneNode(true);
-                    newDeleteBtn.addEventListener("click", function () {
-                        console.log("[edit-btn] 点击取消，恢复页面");
-                        // 取消编辑：直接刷新页面以恢复行的原始显示（简单且可靠）
-                        editingRow = null;
-                        location.reload();
-                    });
-                    deleteBtn.parentNode.replaceChild(newDeleteBtn, deleteBtn);
-                }
-            } else {
-                // 保存
-                const account = btn.dataset.account;
-                const payload = {};
-                tr.querySelectorAll("input[name]").forEach(input => {
-                    payload[input.name] = input.type === "number"
-                        ? Number(input.value)
-                        : input.value;
-                });
-                console.log(`[edit-btn] 保存修改，account: ${account}, payload:`, payload);
-                handleRequest(`${apiPrefix}/modify-${account}`, "PUT", payload)
-                    .then(() => {
-                        console.log("[edit-btn] 修改成功，刷新页面");
-                        // 保存成功：重置编辑状态后刷新
-                        editingRow = null;
-                        location.reload();
-                    })
-                    .catch(err => {
-                        console.error("[edit-btn] 修改失败：", err);
-                        alert("修改失败：" + err.message);
-                    });
-            }
-        });
-    });
-
-    // 删除用户
-    document.querySelectorAll(".delete-btn").forEach(btn => {
-        btn.addEventListener("click", () => {
-            const account = btn.dataset.account;
-            console.log(`[delete-btn] 点击删除，account: ${account}`);
-            if (!confirm(`确认删除账号 ${account} 吗？`)) return;
-            handleRequest(`${apiPrefix}/delete-${account}`, "DELETE")
-                .then(() => {
-                    console.log("[delete-btn] 删除成功，刷新页面");
-                    location.reload();
-                })
-                .catch(err => {
-                    console.error("[delete-btn] 删除失败：", err);
-                    alert("删除失败：" + err.message);
-                });
-        });
-    });
-    // 分析流量并在 Modal 中展示折线图
-    document.getElementById("analyzeTraffic").addEventListener("click", () => { 
-    console.log("[analyzeTraffic] 点击获取流量分析数据");
-    fetch("/admin/traffic-stats")
-        .then(resp => {
-            if (!resp.ok) throw new Error("请求失败，状态码：" + resp.status);
-            return resp.json();
-        })
-        .then(data => {
-            console.log("[analyzeTraffic] 返回数据：", data);
-
-
-            // 处理数据 - 兼容不同结构
-            let hourlyData = data;
-            if (!Array.isArray(hourlyData)) {
-                if (hourlyData && hourlyData.data && Array.isArray(hourlyData.data)) {
-                    hourlyData = hourlyData.data;
-                } else if (hourlyData && hourlyData.stats && Array.isArray(hourlyData.stats)) {
-                    hourlyData = hourlyData.stats;
-                } else {
-                    hourlyData = [hourlyData];
-                }
-            }
-
-            // 准备24小时完整数据（0-23点）
-            const hours = Array.from({length: 24}, (_, i) => i);
-            const onlineUserCounts = Array(24).fill(0); // 初始化为0
-
-            // 用实际数据填充
-            if (Array.isArray(hourlyData) && hourlyData.length > 0) {
-                hourlyData.forEach(item => {
-                    const hour = item.hour;
-                    const count = item.onlineUserCount || 0;
-                    if (hour >= 0 && hour <= 23) {
-                        onlineUserCounts[hour] = count;
-                    }
-                });
-            }
-
-            // 获取canvas上下文
-            const ctx = document.getElementById('hourlyChartCanvas').getContext('2d');
-
-            // 如果已存在图表实例，先销毁
-            if (window.hourlyChartInstance) {
-                window.hourlyChartInstance.destroy();
-            }
-
-            // 创建新图表
-            window.hourlyChartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: hours.map(h => `${h}:00`), // x轴标签：0:00, 1:00, ..., 23:00
-                    datasets: [{
-                        label: '小时活跃度',
-                        data: onlineUserCounts,
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                        tension: 0.4, // 曲线平滑度
-                        fill: true,
-                        pointRadius: 3,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: '24小时用户流量分析'
-                        },
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false
-                        }
-                    },
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: '小时'
-                            },
-                            grid: {
-                                display: true
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: '在线用户数'
-                            },
-                            beginAtZero: true,
-                            grid: {
-                                display: true
-                            },
-                            ticks: {
-                                precision: 0 // 只显示整数
-                            }
-                        }
-                    },
-                    interaction: {
-                        intersect: false,
-                        mode: 'nearest'
-                    }
-                }
-            });
-
-            // 显示Modal
-            const modalEl = document.getElementById("hourlyModal");
-            const modal = new bootstrap.Modal(modalEl);
-            modal.show();
-        })
-        .catch(err => {
-            console.error("[analyzeTraffic] 流量分析接口不可用", err);
-            alert("流量分析接口暂不可用：" + err.message);
-        });
-});
-    
-})();
-</script>
+<script src="/js/admin_menu.js"></script>
 
 </body>
 </html>

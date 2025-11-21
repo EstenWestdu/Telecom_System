@@ -1,16 +1,17 @@
 package com.telecom_system.controller;
 
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import com.telecom_system.service.LoginService;
-import com.telecom_system.service.LoginInfoService;
 import com.telecom_system.entity.User;
+import com.telecom_system.service.ExceptionLoggingService;
+import com.telecom_system.service.LoginInfoService;
+import com.telecom_system.service.LoginService;
 
 import jakarta.servlet.http.HttpSession;
 
@@ -21,10 +22,13 @@ public class AuthController {
     
     private final LoginService loginService;
     private final LoginInfoService loginInfoService;
+    private final ExceptionLoggingService exceptionLoggingService;
 
-    public AuthController(LoginService loginService, LoginInfoService loginInfoService) {
+    public AuthController(LoginService loginService, LoginInfoService loginInfoService,
+                          ExceptionLoggingService exceptionLoggingService) {
         this.loginService = loginService;
         this.loginInfoService = loginInfoService;
+        this.exceptionLoggingService = exceptionLoggingService;
     }
     
     /**
@@ -37,12 +41,11 @@ public class AuthController {
                             RedirectAttributes redirectAttributes) {
         return loginService.userLogin(identifier, password)
                 .map(user -> {
-                    // 记录登录时间
+                    // 记录登录时间（失败时写日志但不阻塞登录）
                     try {
                         loginInfoService.recordLogin(user.getAccount());
                     } catch (Exception e) {
-                        // 记录失败不应阻塞登录
-                        e.printStackTrace();
+                        exceptionLoggingService.logException("LOGIN_AUDIT", "记录用户登录失败", e);
                     }
                     session.setAttribute("user",user);
                     return "redirect:/user/menu";
@@ -90,8 +93,7 @@ public class AuthController {
             try {
                 loginInfoService.recordLogout(accountId);
             } catch (Exception e) {
-                // 记录登出失败：打印日志但继续登出流程
-                e.printStackTrace();
+                exceptionLoggingService.logException("LOGOUT_AUDIT", "记录用户登出失败", e);
             }
         } else if (adminObj instanceof com.telecom_system.entity.Admin) {
             // 管理员仅显示名字，不记录上线/下线
