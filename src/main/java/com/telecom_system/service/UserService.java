@@ -12,7 +12,6 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,12 +28,10 @@ public class UserService {
     
     private final UserRepository userRepository;
     private final PackageRepository packageRepository;
-    private final JdbcTemplate jdbcTemplate;
 
-    public UserService(UserRepository userRepository,PackageRepository packageRepository, JdbcTemplate jdbcTemplate) {
+    public UserService(UserRepository userRepository,PackageRepository packageRepository) {
         this.userRepository = userRepository;
         this.packageRepository = packageRepository;
-        this.jdbcTemplate = jdbcTemplate;
     }
     
     /**

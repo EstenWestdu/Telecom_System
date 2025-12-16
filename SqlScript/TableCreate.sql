@@ -21,7 +21,7 @@ CREATE TABLE package_info (
 
 -- Users (account assigned via sequence or recycle pool)
 CREATE TABLE user_info (
-    account INT PRIMARY KEY DEFAULT nextval('user_info_account_seq'),
+    account INT PRIMARY KEY,
     name VARCHAR(20) NOT NULL,
     password VARCHAR(60) NOT NULL,
     phone VARCHAR(20) NOT NULL,
