@@ -90,7 +90,8 @@
                         <td th:text="${user.name}" data-field="name">张三</td>
                         <td th:text="${user.phone}" data-field="phone">13800000000</td>
                         <td th:text="${user.packageId}" data-field="packageId">1</td>
-                        <td data-field="balance" th:data-original-value="${user.balance}">￥<span th:text="${user.balance}">88.00</span></td>                        <td>
+                        <td data-field="balance" th:data-original-value="${user.balance}">￥<span th:text="${user.balance}">88.00</span></td>
+                        <td>
                             <button class="btn btn-warning btn-sm me-2 edit-btn"
                                     th:data-account="${user.account}">
                                 修改

@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -12,6 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.telecom_system.entity.User;
 import com.telecom_system.repository.UserRepository;
+
+
 
 @Service
 @Transactional
@@ -29,30 +33,45 @@ public class AdminService {
     /**
      * 查询所有普通用户
      */
-    public List<User> findAllByOrderByAccountAsc() {
-        return userRepository.findAllByOrderByAccountAsc();
+    @Cacheable(value = "users", key = "'all'")
+    public List<User> findAllByOrderByAccountAsc() { 
+        List<User> users = userRepository.findAllByOrderByAccountAsc();
+        return users;
     }
 
     /**
-     * 分页查询（支持自定义排序）
+     * 分页查询添加缓存
      */
-    public Page<User> findAllPaged(Pageable pageable) {
-        return userRepository.findAll(pageable);
+    @Cacheable(value = "user_pages", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
+    public com.telecom_system.dto.PageResult<User> findAllPaged(Pageable pageable) {
+        
+        Page<User> users = userRepository.findAll(pageable);
+        com.telecom_system.dto.PageResult<User> result = new com.telecom_system.dto.PageResult<>();
+        result.setContent(users.getContent());
+        result.setTotalElements(users.getTotalElements());
+        result.setTotalPages(users.getTotalPages());
+        result.setPage(users.getNumber());
+        result.setSize(users.getSize());
+        result.setFirst(users.isFirst());
+        result.setLast(users.isLast());
+        return result;
     }
 
     /**
      * 根据 id 查询单个普通用户
      */
-    public Optional<User> findUserById(Integer id) {
-        return userRepository.findById(id);
+    @Cacheable(value = "users", key = "#id", unless = "#result == null")
+    public User findUserById(Integer id) {
+        // .orElse(null) 配合 unless 确保只缓存存在的用户
+        return userRepository.findById(id).orElse(null);
     }
 
     /**
      * 创建普通用户
+     * 改进：需要清理分页和搜索缓存，因为总数和列表已变
      */
+    @CacheEvict(value = {"users", "user_pages", "search_users"}, allEntries = true)
     public User createUser(User user) {
-        // 创建用户时不要手动设置主键 account（实体使用 @GeneratedValue）
-        // 只校验用户名和手机号等字段；主键由数据库生成，避免 Hibernate 的 stale/unsaved-value 错误
         validateUniqueness(user);
         validateFieldFormats(user);
         return userRepository.save(user);
@@ -95,6 +114,7 @@ public class AdminService {
     /**
      * 更新普通用户信息
      */
+    @CacheEvict(value = {"users", "user_pages", "search_users"}, allEntries = true)
     public User updateUser(Integer id, User user) {
         return userRepository.findById(id)
                 .map(existingUser -> {
@@ -166,6 +186,7 @@ public class AdminService {
     /**
      * 删除普通用户
      */
+    @CacheEvict(value = {"users", "user_pages", "search_users"}, allEntries = true)
     public void deleteUser(Integer id) {
         if (!userRepository.existsById(id)) {
             throw new RuntimeException("用户不存在: " + id);
@@ -174,25 +195,28 @@ public class AdminService {
     }
 
     /**
-     * 根据ID或姓名搜索用户
+     * 根据ID或姓名搜索用户（添加缓存）
+     * key 使用 #query，例如搜索 "200" 会生成缓存 key: search_users::200
      */
+    @Cacheable(value = "search_users", key = "#query", unless = "#result == null || #result.isEmpty()")
     public List<User> searchUsers(String query) {
         if (query == null || query.trim().isEmpty()) {
             return List.of();
         }
-        query = query.trim();
-        if (query.matches("\\d+")) {
+        String trimmedQuery = query.trim();
+        if (trimmedQuery.matches("\\d+")) {
             // 全数字，按ID前缀搜索
-            return userRepository.findByAccountStartingWith(query);
+            return userRepository.findByAccountStartingWith(trimmedQuery);
         } else {
             // 按姓名搜索
-            return userRepository.findByNameContaining(query);
+            return userRepository.findByNameContaining(trimmedQuery);
         }
     }
     
     /**
      * 重置普通用户密码
      */
+    @CacheEvict(value = {"users", "user_pages", "search_users"}, key = "#id")
     public void resetUserPassword(Integer id) {
         userRepository.findById(id)
                 .ifPresent(user -> {

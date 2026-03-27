@@ -87,7 +87,18 @@
             const nameDisplay = escapeHtml(user.name ?? "");
             const phoneDisplay = escapeHtml(user.phone ?? "");
             const packageDisplay = escapeHtml(user.packageId ?? "");
-            const balanceDisplay = escapeHtml(balanceVal);
+            let balanceDisplay = balanceVal;
+            if (balanceVal !== null && balanceVal !== undefined && balanceVal !== "") {
+                const num = Number(balanceVal);
+                if (!Number.isNaN(num) && Number.isFinite(num)) {
+                    balanceDisplay = num.toFixed(2);
+                } else {
+                    balanceDisplay = String(balanceVal);
+                }
+            } else {
+                balanceDisplay = '';
+            }
+            balanceDisplay = escapeHtml(balanceDisplay);
             tr.innerHTML = `
                 <td>${accountDisplay}</td>
                 <td data-field="name">${nameDisplay}</td>

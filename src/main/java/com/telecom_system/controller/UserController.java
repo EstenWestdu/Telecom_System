@@ -65,7 +65,7 @@ public class UserController {
      * 分页查询用户
      */
     @GetMapping("/page")
-    public ResponseEntity<Page<User>> getUsersByPage(
+    public ResponseEntity<com.telecom_system.dto.PageResult<User>> getUsersByPage(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         return ResponseEntity.ok(userService.findUsersByPage(page, size));

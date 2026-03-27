@@ -5,9 +5,9 @@ import com.telecom_system.entity.Package;
 import com.telecom_system.repository.PackageRepository;
 import com.telecom_system.repository.UserRepository;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataIntegrityViolationException;
-
-
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -37,6 +37,7 @@ public class UserService {
     /**
      * 查找所有用户
      */
+    @Cacheable(value = "users", key = "'all_desc'")
     public List<User> findAllByOrderByAccountDesc() {
         return userRepository.findAllByOrderByAccountDesc();
     }
@@ -44,14 +45,25 @@ public class UserService {
     /**
      * 分页查询用户
      */
-    public Page<User> findUsersByPage(int page, int size) {
+    public com.telecom_system.dto.PageResult<User> findUsersByPage(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return userRepository.findAll(pageable);
+        Page<User> users = userRepository.findAll(pageable);
+
+        com.telecom_system.dto.PageResult<User> result = new com.telecom_system.dto.PageResult<>();
+        result.setContent(users.getContent());
+        result.setTotalElements(users.getTotalElements());
+        result.setTotalPages(users.getTotalPages());
+        result.setPage(users.getNumber());
+        result.setSize(users.getSize());
+        result.setFirst(users.isFirst());
+        result.setLast(users.isLast());
+        return result;
     }
     
     /**
      * 根据ID查找用户
      */
+    @Cacheable(value = "users", key = "#account")
     public Optional<User> findUserById(Integer account) {
         return userRepository.findById(account);
     }
@@ -59,6 +71,7 @@ public class UserService {
     /**
      * 创建新用户
      */
+    @CacheEvict(value = {"users", "user_pages", "search_users"}, allEntries = true)
     public User createUser(User User) {
         // 业务逻辑验证
         if (userRepository.existsById(User.getAccount())) {
@@ -80,6 +93,7 @@ public class UserService {
     /**
      * 更新用户信息
      */
+    @CacheEvict(value = {"users", "user_pages", "search_users"}, allEntries = true)
     public User updateUser(Integer account, User User) {
         return userRepository.findById(account)
                 .map(existingUser -> {
@@ -101,6 +115,7 @@ public class UserService {
     /**
      * 删除用户
      */
+    @CacheEvict(value = {"users", "user_pages", "search_users"}, allEntries = true)
     public void deleteUser(Integer account) {
         if (!userRepository.existsById(account)) {
             throw new RuntimeException("用户不存在: " + account);
@@ -111,6 +126,7 @@ public class UserService {
     /**
      * 用户充值
      */
+    @CacheEvict(value = {"users", "user_pages", "search_users"}, allEntries = true)
     public User recharge(Integer account, Double amount) {
         if (amount <= 0) {
             throw new RuntimeException("充值金额必须大于0");
@@ -128,6 +144,7 @@ public class UserService {
     /**
      * 用户消费/扣费
      */
+    @CacheEvict(value = {"users", "user_pages", "search_users"}, allEntries = true)
     public User deductBalance(Integer account, Double amount) {
         if (amount <= 0) {
             throw new RuntimeException("扣费金额必须大于0");
@@ -148,6 +165,7 @@ public class UserService {
     /**
      * 更改用户套餐
      */
+    @CacheEvict(value = {"users", "user_pages", "search_users"}, allEntries = true)
     public User changePackage(Integer account, Integer packageId) {
         try {
             // 1. 查询用户信息

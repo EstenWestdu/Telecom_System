@@ -7,6 +7,7 @@ import com.telecom_system.repository.PackageRepository;
 import com.telecom_system.repository.UserRepository;
 import com.telecom_system.repository.AdminRepository;
 import com.telecom_system.repository.StatisticsRepository;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,6 +44,7 @@ public class StatisticsService {
     /**
      * 获取系统总体统计信息
      */
+    @Cacheable(value = "systemStatistics", key = "'all'")
     public Map<String, Object> getSystemStatistics() {
         Map<String, Object> stats = new HashMap<>();
         
@@ -89,6 +91,7 @@ public class StatisticsService {
     /**
      * 获取套餐使用统计
      */
+    @Cacheable(value = "packageUsageStatistics", key = "'all'")
     public List<Map<String, Object>> getPackageUsageStatistics() {
         List<Object[]> results = packageRepository.findPopularPackages();
         
@@ -272,6 +275,11 @@ public class StatisticsService {
      *   {"hour": 23, "onlineUserCount": 8}
      * ]
      */
+    /**
+     * 获取每小时在线用户统计（添加缓存）
+     * 缓存名称：traffic_reports，固定 key：'hourly_stats'
+     */
+    @Cacheable(value = "traffic_reports", key = "'hourly_stats'")
     public List<Map<String, Object>> getHourlyOnlineUserStatistics() {
         List<Object[]> results = statisticsRepository.getHourlyOnlineUserStatistics();
         

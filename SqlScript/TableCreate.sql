@@ -5,7 +5,14 @@ DROP TABLE IF EXISTS admin_info;
 DROP TABLE IF EXISTS user_info;
 DROP TABLE IF EXISTS package_info;
 DROP SEQUENCE IF EXISTS user_info_account_seq;
-
+DROP VIEW IF EXISTS USER_LOGIN_TIMES;
+CREATE VIEW USER_LOGIN_TIMES AS
+    SELECT ACCOUNT_ID, COUNT(*) AS TOTAL_LOGIN_TIMES
+    FROM LOGIN_INFO
+    GROUP BY ACCOUNT_ID
+    ORDER BY TOTAL_LOGIN_TIMES DESC;
+SELECT * FROM information_schema.role_table_grants 
+WHERE grantee = current_user;
 -- Sequence starts at 20001 to satisfy business requirement
 CREATE SEQUENCE user_info_account_seq
     START 20001

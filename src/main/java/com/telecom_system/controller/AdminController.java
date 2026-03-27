@@ -3,7 +3,6 @@ package com.telecom_system.controller;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
@@ -55,9 +54,9 @@ public class AdminController {
     public String getAdminMenu(Model model,
                                @RequestParam(name = "page", defaultValue = "0") int page,
                                @RequestParam(name = "size", defaultValue = "10") int size) {
-        Page<User> usersPage = adminService.findAllPaged(PageRequest.of(page, size, Sort.by("account").ascending()));
+        com.telecom_system.dto.PageResult<User> usersPage = adminService.findAllPaged(PageRequest.of(page, size, Sort.by("account").ascending()));
         model.addAttribute("users", usersPage.getContent());
-        model.addAttribute("pageNumber", usersPage.getNumber());
+        model.addAttribute("pageNumber", usersPage.getPage());
         model.addAttribute("totalPages", usersPage.getTotalPages());
         model.addAttribute("totalElements", usersPage.getTotalElements());
         model.addAttribute("pageSize", usersPage.getSize());
@@ -70,12 +69,12 @@ public class AdminController {
     @GetMapping("/users")
     public ResponseEntity<?> getUsersPaged(@RequestParam(defaultValue = "0") int page,
                                            @RequestParam(defaultValue = "10") int size) {
-        Page<User> usersPage = adminService.findAllPaged(PageRequest.of(page, size, Sort.by("account").ascending()));
+        com.telecom_system.dto.PageResult<User> usersPage = adminService.findAllPaged(PageRequest.of(page, size, Sort.by("account").ascending()));
         return ResponseEntity.ok(Map.of(
-                "content", usersPage.getContent(),
-                "pageNumber", usersPage.getNumber(),
-                "totalPages", usersPage.getTotalPages(),
-                "totalElements", usersPage.getTotalElements()
+            "content", usersPage.getContent(),
+            "pageNumber", usersPage.getPage(),
+            "totalPages", usersPage.getTotalPages(),
+            "totalElements", usersPage.getTotalElements()
         ));
     }
 
